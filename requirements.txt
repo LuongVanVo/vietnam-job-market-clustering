@@ -1,0 +1,14 @@
+numpy
+pandas
+polars
+pyarrow
+datasets
+huggingface_hub
+scikit-learn
+matplotlib
+seaborn
+wordcloud
+tqdm
+joblib
+jupyter
+ipykernel
