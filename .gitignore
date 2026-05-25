@@ -58,7 +58,6 @@ data/*
 models/*
 !models/.gitkeep
 
-outputs/*
 !outputs/.gitkeep
 
 # Data format files (nếu chúng lọt ra ngoài thư mục data)
