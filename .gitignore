@@ -110,3 +110,8 @@ Thumbs.db
 # csv
 data/*
 *.csv
+
+# Keep stage 03 audit CSV outputs for reporting/review
+!outputs/
+!outputs/audit_stage_03/
+!outputs/audit_stage_03/*.csv

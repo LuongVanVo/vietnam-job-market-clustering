@@ -1,0 +1,101 @@
+﻿job_industry,count,ratio
+Bán hàng - Kinh doanh,52977,0.0969937201340193
+Chăm sóc khách hàng,50531,0.09251542503524414
+Kế toán / Kiểm toán,45218,0.0827880407916659
+Xây dựng,26827,0.049116607773851594
+Chưa xác định,23057,0.04221424778923085
+Cơ khí - Ô tô - Tự động hóa / Sản xuất - Lắp ráp - Chế biến,22371,0.040958274593090316
+Khoa học - Kỹ thuật,21595,0.039537523572383236
+Lao động phổ thông,20985,0.03842069609476556
+Nghề nghiệp khác,20985,0.03842069609476556
+Giáo dục - Đào tạo / Biên phiên dịch,16638,0.030461927168201543
+Marketing,14569,0.026673868067888462
+Giáo dục - Đào tạo / Chăm sóc khách hàng,14158,0.025921382669034584
+Dược phẩm / Y tế - Chăm sóc sức khỏe,13687,0.025059045387136346
+Điện - Điện tử - Điện lạnh / Vận hành - Bảo trì - Bảo dưỡng,13583,0.024868635456526116
+Vận hành - Bảo trì - Bảo dưỡng,13512,0.02473864406159029
+Khách sạn - Nhà hàng - Du lịch / Bán sỉ - Bán lẻ - Quản lý cửa hàng,13031,0.023857998132517988
+Nhân sự / Hành chính - Thư ký,11468,0.020996356579212363
+Bất động sản,10364,0.018975081931196104
+Thực phẩm - Đồ uống / Công nghệ thực phẩm - Dinh dưỡng,10207,0.018687636170563356
+Tài chính - Đầu tư - Chứng Khoán,9955,0.018226258261777036
+Khách sạn - Nhà hàng - Du lịch,8927,0.016344129332283637
+Ngân hàng / Tài chính - Đầu tư - Chứng Khoán,8598,0.015741774840257055
+Vận Tải - Lái xe - Giao nhận,8427,0.015428696973580623
+Hành chính - Thư ký,8401,0.015381094490928065
+Xuất Nhập Khẩu / Thu mua - Kho Vận - Chuỗi cung ứng,7471,0.013678390303740457
+Thu mua - Kho Vận - Chuỗi cung ứng,6750,0.012358336842490708
+Dệt may - Da giày - Thời trang,5565,0.010188762152364562
+Kiến trúc - Thiết kế nội ngoại thất,5105,0.009346564382357788
+Thực tập sinh / Lao động phổ thông,5091,0.009320932276314102
+IT Phần mềm,4882,0.008938281550376242
+Luật - Pháp Lý - Tuân thủ,4757,0.008709423460700489
+Quản lý tiêu chuẩn và chất lượng,3811,0.006977425438034384
+Thiết kế - Sáng tạo nghệ thuật,3520,0.006444643805269229
+Quản lý dự án,3121,0.0057141287830242225
+Bán sỉ - Bán lẻ - Quản lý cửa hàng,2693,0.004930518683974441
+IT phần mềm,1758,0.003218660173199802
+Nhân viên kinh doanh,1586,0.002903751441805965
+Nhân sự,1032,0.0018894523883630238
+Thực tập,1016,0.0018601585528845274
+Marketing - PR,985,0.0018034017466449404
+Giáo dục - Đào tạo,834,0.0015269411743166297
+Tư vấn/ Chăm sóc khách hàng,817,0.0014958164741207271
+Kế toán - Kiểm toán,672,0.0012303410900968528
+Phát triển thị trường,620,0.0011351361247917391
+Thiết kế - Mỹ thuật,586,0.001072886724399934
+Y tế - Chăm sóc sức khỏe,548,0.001003313865138505
+Y tế - Dược,545,0.0009978212709862869
+Kỹ thuật,535,0.0009795126238122266
+Thư ký - Trợ lý,433,0.0007927644226368113
+Sản xuất - Lắp ráp - Chế biến,397,0.0007268532928101942
+Thông tin - Truyền thông - Quảng cáo,378,0.0006920668631794797
+Xuất Nhập Khẩu,353,0.0006462952452443289
+Ngân hàng,315,0.0005767223859828997
+QA-QC/ Thẩm định/ Giám định,301,0.0005510902799392153
+Kế toán / Kiểm toán / Tài chính - Đầu tư - Chứng Khoán,268,0.0004906717442648163
+Kế toán,254,0.00046503963822113186
+Giao nhận/ Vận chuyển/ Kho bãi,248,0.00045405444991669566
+IT Phần cứng - Mạng,246,0.0004503927204818836
+Điện - Điện tử - Điện lạnh,236,0.0004320840733078233
+Quan hệ đối ngoại,216,0.00039546677895970265
+"Marketing/PR/Quảng cáo, Công nghệ Thông tin, Thiết kế, Quảng cáo/Sáng tạo, Software Design, Thiết kế Đồ hoạ/Giao diện/Trải nghiệm, Thiết kế đồ họa (Graphic Design), Việc làm IT",209,0.00038265072593786045
+Hành chính - Văn phòng,197,0.0003606803493289881
+Việc làm cấp cao,196,0.00035884948461158204
+"Công nghệ thông tin, Software Engineering, Software Engineer",188,0.0003442025668723338
+"Công nghệ thông tin, Software Engineering, Backend Developer",188,0.0003442025668723338
+Kiến trúc - Thiết kế nội thất,187,0.0003423717021549278
+An ninh - Bảo vệ,153,0.00028012230176312274
+Tiếp thị - Quảng cáo,151,0.0002764605723283107
+"Tư vấn dịch vụ khách hàng , Dịch vụ khách hàng , Bán hàng / Kinh doanh",151,0.0002764605723283107
+Vật tư/Thiết bị/Mua hàng,149,0.0002727988428934986
+Bán hàng - Kinh doanh / Chăm sóc khách hàng / Bán sỉ - Bán lẻ - Quản lý cửa hàng,139,0.0002544901957194383
+Ngân hàng/ Tài Chính,139,0.0002544901957194383
+"Công nghệ thông tin, Software Engineering, Fullstack Developer",129,0.00023618154854537798
+"Bán hàng / Kinh doanh , Mới tốt nghiệp / Thực tập , Tư vấn kỹ thuật",129,0.00023618154854537798
+Bảo hiểm,128,0.00023435068382797195
+"Tư vấn dịch vụ khách hàng , Bán hàng / Kinh doanh , Tiếp thị",127,0.00023251981911056593
+Bán hàng - Kinh doanh / Chăm sóc khách hàng / Lao động phổ thông,123,0.0002251963602409418
+"Kinh doanh/Bán hàng, Công nghệ Thông tin, Sales IT Phần mềm, Kinh doanh phần mềm, Việc làm IT",121,0.00022153463080612973
+Nông - Lâm - Ngư nghiệp,116,0.00021238030721909958
+"Công nghệ thông tin, IT Infrastructure and Operations, IT Helpdesk/IT support",108,0.00019773338947985132
+Công nghiệp,105,0.00019224079532763325
+Thiết kế đồ họa - Web,103,0.00018857906589282117
+"Tư vấn dịch vụ khách hàng , Bán hàng / Kinh doanh , Bán lẻ / Bán sỉ",103,0.00018857906589282117
+Bán hàng - Kinh doanh / Chăm sóc khách hàng,101,0.00018491733645800912
+"Kế toán / Kiểm toán , Tài chính / Đầu tư",98,0.00017942474230579102
+Bán hàng - Kinh doanh / Bán sỉ - Bán lẻ - Quản lý cửa hàng / Chăm sóc khách hàng,98,0.00017942474230579102
+Kế toán / Kiểm toán / Hành chính - Thư ký,91,0.00016660868928394882
+"Tư vấn dịch vụ khách hàng , Dược / Sinh học , Bán hàng / Kinh doanh",90,0.00016477782456654277
+Khách sạn - Nhà hàng,88,0.00016111609513173072
+"Công nghệ thông tin, Software Testing, Manual Tester",87,0.0001592852304143247
+"Công nghệ thông tin, Software Engineering, Frontend Developer",87,0.0001592852304143247
+"Nông nghiệp / Lâm nghiệp , Bán hàng / Kinh doanh , Tiếp thị",84,0.0001537926362621066
+Bán sỉ - Bán lẻ - Quản lý cửa hàng / Bán hàng - Kinh doanh,82,0.00015013090682729454
+Thực tập sinh,77,0.00014097658324026437
+Bán sỉ - Bán lẻ - Quản lý cửa hàng / Bán hàng - Kinh doanh / Chăm sóc khách hàng,77,0.00014097658324026437
+"Công nghệ thông tin, Software Engineering, Mobile Developer",76,0.00013914571852285834
+Bán hàng - Kinh doanh / Tài chính - Đầu tư - Chứng Khoán / Ngân hàng,74,0.0001354839890880463
+Làm bán thời gian,71,0.0001299913949358282
+Bán hàng - Kinh doanh / Chăm sóc khách hàng / Y tế - Chăm sóc sức khỏe,70,0.00012816053021842217
+Hành chính - Thư ký / Nhân sự,70,0.00012816053021842217
