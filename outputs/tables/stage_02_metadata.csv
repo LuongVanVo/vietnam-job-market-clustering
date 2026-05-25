@@ -1,0 +1,2 @@
+﻿project_title,dataset_id,split_method,random_state,train_size,test_size,n_total_rows,n_raw_train,n_raw_test,n_columns,columns
+"Phân cụm tin tuyển dụng tại Việt nam dựa trên mô tả công việc, yêu cầu ứng viên và đặc điểm tuyển dụng",tinixai/vietnamese-job-descriptions,random_split,42,0.9,0.1,606878,546190,60688,14,"id, job_title, company_name, salary, location, job_type, job_industry, experience_level, education_level, job_position, job_description, benefits, requirements, year"

@@ -1,0 +1,2 @@
+﻿n_train_rows,n_test_rows,n_clean_input_columns,n_eda_columns_after_display,n_unique_job_title,n_unique_company_name,n_unique_location_city,n_unique_job_industry,n_unique_primary_industry,location_city_unknown_count,location_city_unknown_ratio,salary_available_ratio,salary_parse_issue_ratio
+546190,60688,31,33,271093,109743,64,4090,2783,13455,0.024634284772698144,0.9169702850656365,0.014075687947417564

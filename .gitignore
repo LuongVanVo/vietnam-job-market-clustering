@@ -115,3 +115,5 @@ data/*
 !outputs/
 !outputs/audit_stage_03/
 !outputs/audit_stage_03/*.csv
+!outputs/tables/
+!outputs/tables/*.csv
