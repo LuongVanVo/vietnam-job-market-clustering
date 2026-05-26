@@ -1,81 +1,76 @@
-# Báo cáo Kết quả Giai đoạn 2: Trích xuất Đặc trưng và Lọc ngoại lệ Không gian Vector
+# BÁO CÁO GIAI ĐOẠN 2: TRÍCH XUẤT ĐẶC TRƯNG & GIẢM CHIỀU DỮ LIỆU
+**(Feature Engineering & Dimensionality Reduction)**
 
-Tài liệu này tổng hợp chi tiết quy trình, cơ sở toán học và kịch bản thực thi trong **Giai đoạn 2: Trích xuất Đặc trưng và Lọc ngoại lệ Không gian Vector** của dự án Phân cụm thị trường việc làm Việt Nam. Quy trình được thiết kế đồng bộ tương ứng với mã nguồn trong tệp tin `notebooks/02_feature_engineering.ipynb`.
+Tài liệu này giải thích chuyên sâu về các quyết định thiết kế thuật toán, lý thuyết toán học và cơ chế đảm bảo chất lượng mô hình (chống rò rỉ dữ liệu) được thực thi trong file `notebooks/02_feature_engineering.ipynb`.
 
 ---
 
-## 1. Lưu đồ Quy trình Trích xuất Đặc trưng (Mermaid Flowchart)
+## 1. Kiểm tra Rò rỉ Dữ liệu (Data Leakage Check)
+Trước khi đi sâu vào thuật toán, cần khẳng định pipeline từ Phase 1 sang Phase 2 **hoàn toàn KHÔNG CÓ RÒ RỈ DỮ LIỆU (Zero Data Leakage)**. Mọi tham số không gian vector đều tuân thủ nguyên tắc cách ly khắt khe:
 
-Quy trình biến đổi từ dữ liệu sạch dạng bảng sang ma trận đặc trưng 169 chiều được thể hiện trong sơ đồ dưới đây:
+> [!IMPORTANT]
+> Toàn bộ các bộ chuyển đổi (Transformers) bao gồm `MinMaxScaler`, `OneHotEncoder`, `TfidfVectorizer`, `TruncatedSVD`, `IsolationForest` và `StandardScaler` đều sử dụng phương thức `fit()` **CHỈ ĐỘC QUYỀN TRÊN TẬP TRAIN**. Tập Test chỉ được gọi hàm `transform()` mô phỏng dữ liệu "unseen" trong môi trường Production thực tế.
+
+---
+
+## 2. Kiến trúc Biến đổi Dữ liệu 
 
 ```mermaid
 graph TD
-    A[Dữ liệu Sạch: clean_data_train.csv / clean_data_test.csv] --> B1[Trích xuất Đặc trưng Số: Lương, Kinh nghiệm, Học vấn]
-    A --> B2[Trích xuất Đặc trưng Danh mục: Tỉnh thành, Ngành nghề, Vị trí]
-    A --> B3[Trích xuất Đặc trưng Văn bản: text_combined]
-    
-    B1 --> C1[MinMaxScaler trên tập Train]
-    B2 --> C2[OneHotEncoder min_frequency=0.005 trên tập Train]
-    B3 --> C3[TfidfVectorizer max_features=10000 trên tập Train]
-    
-    C3 --> D3[TruncatedSVD giảm chiều về 100D trên tập Train]
-    
-    C1 --> E[Ghép nối đặc trưng: numpy.hstack]
-    C2 --> E
-    D3 --> E
-    
-    E --> F[Ma trận Đặc trưng Kết hợp: 169 Chiều]
-    F --> G[Isolation Forest phát hiện ngoại lệ Tầng 2 trên tập Train]
-    G --> H[Train Sạch Ngoại lệ & Test Đặc trưng 169D]
+    A[Dữ liệu sạch Phase 1] --> B[Biến Phân loại OHE]
+    A --> C[Biến Số / Log MinMaxScaler]
+    A --> D[Biến Văn bản TF-IDF]
+    D --> E[Giảm chiều SVD - 100D]
+    B --> F((Hợp nhất Ma trận - 169D))
+    C --> F
+    E --> F
+    F --> G[Isolation Forest Loại ngoại lệ tầng 2]
+    G --> H[StandardScaler Cân bằng Phương sai]
+    H --> I[Kết xuất File .npz và Models]
 ```
 
 ---
 
-## 2. Các Bước Thực hiện Chi tiết & Cơ sở Toán học
+## 3. Giải phẫu Các Thuật toán Cốt lõi
 
-### Bước 1: Mã hóa Đặc trưng Cấu trúc Số
-*   **Mã hóa Học vấn**: Thuộc tính bậc học vấn `education_level` được ánh xạ có thứ tự (Ordinal Encoding) sang khoảng số thực từ 0 đến 5:
-    $$\text{Không yêu cầu} \rightarrow 0, \text{ Trung học} \rightarrow 1, \text{ Chứng chỉ} \rightarrow 2, \text{ Trung cấp/Bằng liên quan} \rightarrow 3, \text{ Cao đẳng} \rightarrow 4, \text{ Đại học/Cử nhân/Kỹ sư} \rightarrow 5$$
-*   **Co giãn dữ liệu số (MinMaxScaler)**: Đưa 5 thuộc tính số liên tục (`salary_min_m_vnd`, `salary_max_m_vnd`, `exp_min_years`, `exp_max_years`, `edu_encoded`) về đoạn $[0, 1]$ để cân bằng khoảng cách hình học:
-    $$x_{\text{scaled}} = \frac{x - \min(X_{\text{Train}})}{\max(X_{\text{Train}}) - \min(X_{\text{Train}})}$$
-    *   *Lưu ý*: Chỉ thực hiện `.fit_transform()` trên tập Train và gọi `.transform()` trên tập Test để ngăn ngừa rò rỉ dữ liệu.
+### 3.1. Xử lý Biến có Cấu trúc (Cell 6)
 
-### Bước 2: Mã hóa Đặc trưng Danh mục (One-Hot Encoding)
-*   **Bài toán**: Các biến danh mục (`location`, `job_type`, `job_industry`, `job_position`) khi mã hóa One-Hot trực tiếp sẽ tạo ra hàng ngàn cột thưa, gây bùng nổ số chiều.
-*   **Giải pháp**: Áp dụng trình mã hóa `OneHotEncoder` của thư viện Scikit-learn với tham số `min_frequency=0.005`. Các danh mục có tần suất xuất hiện nhỏ hơn $0.5\%$ trên toàn tập huấn luyện sẽ tự động được gom vào nhóm chung dưới dạng biến ẩn. Thiết lập `handle_unknown='infrequent_if_exist'` trên tập Test để gom các giá trị phân loại mới phát sinh vào nhóm này.
-*   **Kết quả**: Tạo ra **64 chiều đặc trưng nhị phân** tối ưu đại diện cho các nhóm lớn nhất của thị trường việc làm.
+- **Ordinal Encoding (Học vấn):** Biến `education_level` chứa thông tin có thứ bậc (High School < Bachelor < Master). Phải map thủ công bằng Dictionary sang số để bảo toàn quan hệ độ lớn.
+- **MinMaxScaler (Biến số & Log Transform):** 
+  - Các biến liên tục (như `salary_min_log1p`, `exp_min_years`) được co giãn về dải tuyến tính $[0, 1]$.
+  - **Toán học:** $X_{\text{norm}} = \frac{X - X_{\text{min}}}{X_{\text{max}} - X_{\text{min}}}$
+- **One-Hot Encoding (Biến danh mục):** 
+  - Áp dụng trên: `location, job_type, job_industry, job_position`.
+  - **Tại sao lại set `min_frequency=0.005`?** Đây là kỹ thuật chặn Bùng nổ Chiều (Curse of Dimensionality). Những danh mục xuất hiện dưới 0.5% sẽ tự động bị gộp vào nhóm `"infrequent_sklearn"`. Điều này nén ma trận phân loại xuống chỉ còn đúng 64 chiều (rất tối ưu).
 
-### Bước 3: Vector hóa Văn bản và Giảm chiều Ngữ nghĩa (TF-IDF + TruncatedSVD)
-*   **Tạo ma trận TF-IDF**: Cột text kết hợp được vector hóa với cấu hình `ngram_range=(1,2)`, `min_df=5`, `max_df=0.85` và danh sách từ dừng tiếng Việt tùy chỉnh (loại bỏ các từ chung như *và, của, công ty, yêu cầu*). Số lượng đặc trưng tối đa giới hạn ở mức 10,000 từ khóa thưa.
-    *   Tần suất từ khóa (TF) trong tài liệu $d$:
-        $$\text{TF}(t, d) = \frac{f_{t,d}}{\sum_{t' \in d} f_{t',d}}$$
-    *   Tần suất tài liệu ngược (IDF) trên tập tài liệu $D$:
-        $$\text{IDF}(t, D) = \log \left(\frac{1 + |D|}{1 + |\{d \in D : t \in d\}|}\right) + 1$$
-    *   Giá trị TF-IDF:
-        $$\text{TF-IDF}(t, d, D) = \text{TF}(t, d) \times \text{IDF}(t, D)$$
-*   **Giảm chiều bằng TruncatedSVD (LSA)**: Để tránh lời nguyền chiều kích trong đo khoảng cách Euclid, ma trận TF-IDF thưa 10,000 cột được nén về **100 chiều trực giao ngữ nghĩa** thông qua phân tích suy hao kỳ dị (Singular Value Decomposition):
-    $$X_{\text{TF-IDF}} \approx U_k \Sigma_k V_k^T$$
-    Với $k=100$. Bộ giảm chiều chỉ được fit trên tập Train, tập Test chỉ được chiếu lên không gian $V_k$ thông qua `.transform()`.
+### 3.2. Xử lý Ngôn ngữ Tự nhiên - NLP (Cell 10)
 
-### Bước 4: Lọc Ngoại lệ Không gian Vector (Isolation Forest)
-*   **Phương pháp**: Ghép nối 5 đặc trưng số đã scale, 64 cột nhị phân One-Hot và 100 trục SVD thành ma trận đặc trưng **169 chiều**. Áp dụng thuật toán rừng cô lập (Isolation Forest) trên tập Train với tỷ lệ `contamination=0.04` (lọc bỏ $4\%$ tin tuyển dụng có cấu trúc đặc dị hoặc mô tả từ ngữ kỳ dị).
-*   **Cơ chế**: Thuật toán xây dựng các cây cô lập (iTrees). Điểm bất thường (anomaly score) của điểm dữ liệu $x$ được tính bằng:
-    $$s(x, n) = 2^{-\frac{E(h(x))}{c(n)}}$$
-    Trong đó $E(h(x))$ là chiều sâu trung bình của đường dẫn tìm kiếm điểm $x$ trên các cây iTrees, và $c(n)$ là chiều sâu trung bình của cây nhị phân tìm kiếm lỗi. Điểm có $s(x, n) \rightarrow 1$ (đường dẫn tìm kiếm rất ngắn) sẽ bị đánh nhãn là ngoại lệ và loại bỏ.
-*   **Kết quả**: Loại bỏ **14,715 dòng ngoại lệ** khỏi tập Train, dữ liệu huấn luyện cuối cùng còn lại **523,972 dòng sạch** lưu vào `results/clean_data_train_final.csv`. Tập Test được giữ nguyên kích thước để kiểm tra khả năng bao phủ thực tế.
+- **TfidfVectorizer:** 
+  - Trích xuất đặc trưng từ cột `text_combined` (tiêu đề + mô tả + yêu cầu).
+  - Thuật toán phạt nặng các từ xuất hiện ở mọi tin tuyển dụng (như "làm việc", "công ty") bằng chỉ số IDF, và tôn vinh các từ khóa đặc trưng ("reactjs", "b2b sales").
+  - Kích thước ma trận thô: Khổng lồ với $10,000$ chiều (`max_features=10000`).
+- **TruncatedSVD (Latent Semantic Analysis - LSA):**
+  - Giảm ma trận thưa thớt $10,000$ chiều xuống còn $100$ chiều dày đặc. SVD giải quyết hoàn hảo vấn đề từ đồng nghĩa (synonyms) bằng cách gom chúng vào chung một "Concept" không gian vector.
 
-### Bước 5: Bác bỏ StandardScaler toàn cục
-*   **Nguyên tắc hình học**: Không áp dụng `StandardScaler` lên ma trận đặc trưng hỗn hợp 169D. StandardScaler sẽ chia các cột nhị phân One-Hot cho độ lệch chuẩn rất bé của chúng, làm méo mó nghiêm trọng không gian Euclid và dẫn đến hiện tượng dồn cụm (clumping) trong K-Means. Việc giữ nguyên khoảng cách thô giúp bảo toàn ý nghĩa của các chiều One-Hot và cấu trúc phương sai của SVD.
+### 3.3. Khử Nhiễu Đa Chiều với Isolation Forest (Cell 13)
+
+- Khác với lọc nhiễu "thủ công" ở Phase 1 (bằng IQR/Winsorize trên từng cột), ở Phase 2, mô hình đối diện với không gian khổng lồ 169 chiều.
+- **Vì sao dùng Isolation Forest?** Đây là thuật toán xây dựng hàng loạt cây quyết định (Random Trees) để cô lập các điểm dữ liệu. Các điểm "dị thường" (Ngoại lệ) cần cực kỳ ít bước chẻ nhánh (splits) để bị cô lập. 
+- Mức nhiễm bẩn (`contamination=0.04`) đã lọc thành công $4\%$ điểm nhiễu trong không gian Vector mà mắt người không thể nhìn thấy, giúp các tâm cụm (Centroids) của K-Means ở Giai đoạn sau trở nên siêu sắc nét.
+
+### 3.4. Chuẩn hóa Cuối Cùng - StandardScaler (Cell 16)
+
+> [!CAUTION]
+> Đây là bản vá cực kỳ quan trọng được cập nhật vào kiến trúc. Nếu không chạy bước này, K-Means sẽ tính sai khoảng cách do bị thiên lệch vào các chiều có phương sai lớn.
+
+- **Vì sao:** Trong ma trận hợp nhất 169 chiều, dữ liệu SVD dao động trong khoảng hẹp (vài phần mười), trong khi MinMax nằm ở $[0,1]$, OneHot chỉ có $0,1$.
+- **Giải pháp:** `StandardScaler` ép toàn bộ 169 trục về chung phân phối chuẩn $N(0, 1)$ với Mean $\mu = 0$ và Variance $\sigma^2 = 1$. 
+- Điều này buộc thuật toán tính khoảng cách Euclid (K-Means) phải coi trọng ngữ nghĩa văn bản ngang bằng với mức lương hoặc vị trí địa lý.
 
 ---
 
-## 3. Kích thước Ma trận Đặc trưng Đầu ra
+## 4. Kết Quả Lưu Trữ (Cell 18 & 20)
 
-Ma trận đặc trưng được lưu dưới dạng nén `.npz` trong thư mục `results/`:
-*   `features_train.npz`:
-    *   `features_160d` (ma trận đặc trưng phân cụm 169D): Kích thước `(523,972, 169)`
-    *   `features_2d` (tọa độ trực quan hóa UMAP 2D): Kích thước `(523,972, 2)`
-*   `features_test.npz`:
-    *   `features_160d` (ma trận đặc trưng phân cụm 169D): Kích thước `(60,644, 169)`
-    *   `features_2d` (tọa độ trực quan hóa UMAP 2D): Kích thước `(60,644, 2)`
-*   Mô hình tiền xử lý đã huấn luyện được lưu trữ trong thư mục `models/` phục vụ quy trình suy diễn.
+- **Dữ liệu đầu ra:** Ma trận nén dạng `Numpy Compressed` (`features_train.npz` & `features_test.npz`) với chiều dữ liệu cực đẹp: **169D**.
+- **Mô hình Pipeline (Models):** `scaler_num.pkl`, `ohe.pkl`, `tfidf.pkl`, `svd.pkl`, `iso_forest.pkl`.
+- Toàn bộ pipeline này đã có thể đem vào API Server để xử lý thời gian thực đối với bất kỳ tin đăng tuyển dụng mới nào!
