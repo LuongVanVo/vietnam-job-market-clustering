@@ -1,88 +1,55 @@
-# Báo cáo Kết quả Giai đoạn 3: Phân cụm và Thiết lập Hồ sơ Cụm Ngữ nghĩa
+# BÁO CÁO GIAI ĐOẠN 3: HUẤN LUYỆN MÔ HÌNH PHÂN CỤM (TRAINING PIPELINE)
+**(Unsupervised Clustering with MiniBatch K-Means)**
 
-Tài liệu này tổng hợp chi tiết quy trình, cơ sở toán học và kết quả thực nghiệm trong **Giai đoạn 3: Phân cụm và Thiết lập Hồ sơ Cụm Ngữ nghĩa** của dự án Phân cụm thị trường việc làm Việt Nam. Quy trình được thiết kế đồng bộ tương ứng với mã nguồn trong tệp tin `training.ipynb` (hoặc `notebooks/03_training.ipynb`).
-
----
-
-## 1. Lưu đồ Quy trình Huấn luyện & Đánh giá (Mermaid Flowchart)
-
-Quy trình tìm số cụm tối ưu, huấn luyện và thiết lập đặc trưng ngữ nghĩa cho các cụm được mô tả dưới đây:
-
-```mermaid
-graph TD
-    A[Ma trận Đặc trưng Train 169D: features_train.npz] --> B[Lấy mẫu ngẫu nhiên 10,000 dòng để đánh giá nhanh]
-    B --> C[Khảo sát Mini-Batch K-Means với K chạy từ 5 đến 19]
-    C --> D[Tính toán các chỉ số: Inertia, Silhouette, DBI, CHI]
-    D --> E[Xác định điểm K tối ưu dựa trên toán học hình học]
-    E --> F[Huấn luyện Mini-Batch K-Means K=11 trên toàn bộ 523,972 dòng]
-    F --> G[Lưu mô hình clustering_model.pkl]
-    G --> H[Trích xuất thống kê nghiệp vụ: Lương, Kinh nghiệm, Địa điểm, Ngành nghề]
-    H --> I[Chạy TF-IDF tiểu cụm để tìm từ khóa đặc trưng nhất]
-    I --> J[Gán nhãn thủ công và lưu cluster_labels_map.pkl]
-```
+Tài liệu này tổng hợp quá trình huấn luyện mô hình học máy không giám sát (Unsupervised Learning) nhằm phân nhóm hơn 520,000 tin tuyển dụng trên thị trường lao động Việt Nam.
 
 ---
 
-## 2. Các Bước Thực hiện Chi tiết & Cơ sở Toán học
+## 1. Kiến trúc Huấn luyện (Training Architecture)
 
-### Bước 1: Khảo sát Số cụm K bằng các Chỉ số Hình học
-Mô hình `MiniBatchKMeans` được chạy khảo sát với số cụm $K \in [5, 7, 9, 11, 13, 15, 17, 19]$. Các chỉ số đánh giá chất lượng phân cụm bao gồm:
-
-*   **Inertia (Tổng bình phương khoảng cách trong cụm)**: Đo độ cô đặc của các cụm. Mục tiêu là tìm điểm gãy (Elbow) nơi tốc độ giảm Inertia bắt đầu chững lại:
-    $$\text{Inertia} = \sum_{i=1}^{N} \min_{\mu_j \in C} \|x_i - \mu_j\|^2$$
-    Trong đó $x_i$ là điểm dữ liệu và $\mu_j$ là tâm của cụm $C_j$.
-*   **Silhouette Score (Hệ số dáng điệu)**: Đo mức độ tương đồng của một điểm với cụm của nó so với các cụm lân cận. Được tính trên mẫu ngẫu nhiên 10,000 dòng đồng nhất để giảm tải bộ nhớ:
-    $$s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}$$
-    Trong đó $a(i)$ là khoảng cách trung bình từ điểm $i$ đến các điểm khác trong cùng cụm, và $b(i)$ là khoảng cách trung bình nhỏ nhất từ điểm $i$ đến các điểm trong cụm khác. Giá trị Silhouette trung bình càng tiến gần $+1$ thể hiện cấu trúc cụm càng cô đặc và tách biệt rõ ràng.
-*   **Davies-Bouldin Index (DBI)**: Đo tỷ lệ khoảng cách nội cụm so với khoảng cách liên cụm. Cụm phân tách tốt khi DBI nhỏ:
-    $$\text{DBI} = \frac{1}{k} \sum_{i=1}^{k} \max_{j \neq i} \left( \frac{s_i + s_j}{d(\mu_i, \mu_j)} \right)$$
-    Trong đó $s_i$ là khoảng cách trung bình từ các điểm cụm $i$ đến tâm cụm $\mu_i$, và $d(\mu_i, \mu_j)$ là khoảng cách Euclid giữa hai tâm cụm.
-*   **Calinski-Harabasz Index (CHI)**: Tỷ số giữa phương sai liên cụm và phương sai nội cụm. Giá trị CHI lớn thể hiện sự phân tách cụm tốt:
-    $$\text{CHI} = \frac{\text{Tr}(B_k)}{\text{Tr}(W_k)} \times \frac{N - k}{k - 1}$$
-    Trong đó $B_k$ là ma trận phân tán giữa các cụm và $W_k$ là ma trận phân tán nội bộ cụm.
-
-### Bước 2: Huấn luyện Mô hình Phân cụm Tối ưu ($K^* = 11$)
-Kết quả khảo sát thực nghiệm trên tập Train chỉ ra $K=11$ là mốc tối ưu toán học:
-*   *Inertia*: 903,277.16 (giảm mạnh từ 1,072,154.87 ở mốc $K=5$).
-*   *Silhouette*: Đạt giá trị **cực đại cục bộ** ở mức **$+0.0954$**.
-*   *Davies-Bouldin Index (DBI)*: Đạt giá trị **nhỏ nhất** ở mức **$2.5680$**.
-*   *Calinski-Harabasz Index (CHI)*: Đạt mức cao **$531.2788$**.
-
-Tiến hành huấn luyện mô hình `MiniBatchKMeans` với tham số `n_clusters=11`, `batch_size=2048`, `n_init=10` trên toàn bộ tập dữ liệu huấn luyện sạch gồm **523,972 dòng**.
-
-### Bước 3: Trích xuất Đặc tính Cụm & Gán nhãn Ngữ nghĩa (Profiling)
-Với mỗi cụm $c \in [0, 10]$, dự án tiến hành lọc các dòng dữ liệu thuộc cụm để tính toán:
-1.  **Tỷ trọng**: Phần trăm số lượng tin tuyển dụng thuộc cụm trên tổng thể dữ liệu Train.
-2.  **Thông số kinh tế**: Mức lương tối thiểu trung vị (Median) và số năm kinh nghiệm yêu cầu trung vị.
-3.  **Tỉnh thành chính & Ngành nghề chính**: Tìm Yếu vị (Mode) của cột địa điểm và ngành nghề.
-4.  **Từ khóa ngữ nghĩa chính**: Chạy bộ vector hóa `TfidfVectorizer` (lọc từ dừng chuyên dụng) trên mẫu ngẫu nhiên 15,000 mô tả công việc thuộc riêng tiểu cụm đó để trích xuất 5 từ khóa có điểm TF-IDF trung bình cao nhất.
-5.  **Gán nhãn chuyên môn**: Từ các đặc trưng trên, gán tên nhãn chuẩn nghiệp vụ cho từng cụm và lưu thành tệp tin ánh xạ `models/cluster_labels_map.pkl`.
+Toàn bộ quy trình diễn ra tại file `notebooks/03_training.ipynb`:
+- **Dữ liệu đầu vào:** Ma trận đặc trưng **169D** (169 chiều) đã được chuẩn hoá `StandardScaler` từ Phase 2. Mọi khoảng cách (Euclid) giữa biến văn bản (100D), biến phân loại (64D) và biến số (5D) đều được đưa về trọng số công bằng.
+- **Thuật toán cốt lõi:** Sử dụng `MiniBatchKMeans(batch_size=2048)`. Do tập dữ liệu khổng lồ, thuật toán K-Means truyền thống (tính khoảng cách toàn cục) sẽ làm tràn bộ nhớ (OOM). Biến thể Mini-Batch lấy mẫu ngẫu nhiên giúp hội tụ cực nhanh (vài giây) mà vẫn đảm bảo độ chính xác.
 
 ---
 
-## 3. Chi tiết Hồ sơ 11 Cụm Tối ưu sau Huấn luyện
+## 2. Quá trình "Cân Não" chọn K (Hyperparameter Tuning)
 
-Dưới đây là kết quả phân tích hồ sơ (Profiling) chi tiết của 11 cụm tối ưu trên tập Train:
+Quá trình quét mốc $K \in [5, 19]$ trên mẫu 10,000 dòng đã phơi bày một cuộc "xung đột chỉ số" kinh điển trong các bài toán NLP (Xử lý ngôn ngữ tự nhiên):
+- **Davies-Bouldin Index (DBI):** Đạt điểm đẹp nhất ở $K = 15$.
+- **Calinski-Harabasz (CHI):** Tạo đỉnh ở $K = 7$ và $K = 11$.
+- **Silhouette Score:** Tạo một đỉnh chóp (Global Maximum) khổng lồ tại **$K = 17$** (đạt $0.041$, cao gấp đôi mức trung bình).
 
-1.  **Cụm 00: Kế toán & Kiểm toán chuyên nghiệp (Accounting & Finance) - Miền Nam**
-    *   *Tỷ lệ*: 4.79% | *Lương Med*: 9.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Kế toán/Kiểm toán | *Vùng*: Hồ Chí Minh | *Từ khóa*: `toán`, `kế`, `kế toán`.
-2.  **Cụm 01: Chuyên viên văn phòng & Hành chính tổng hợp (Office & Administration) - Miền Bắc**
-    *   *Tỷ lệ*: 11.23% | *Lương Med*: 10.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Kế toán/Kiểm toán | *Vùng*: Hà Nội | *Từ khóa*: `hàng`, `năng`, `khách`, `khách hàng`, `toán`.
-3.  **Cụm 02: Quản lý kinh doanh & Trưởng nhóm (Business Management & Team Leads) - Miền Nam**
-    *   *Tỷ lệ*: 9.87% | *Lương Med*: 10.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Bán hàng/Kinh doanh | *Vùng*: Hồ Chí Minh | *Từ khóa*: `hàng`, `năng`, `khách`, `lý`, `kinh`.
-4.  **Cụm 03: Bán hàng & Phát triển thị trường (Sales & Business Development) - Miền Nam**
-    *   *Tỷ lệ*: 11.56% | *Lương Med*: 8.0M | *Kinh nghiệm Med*: 2.0 năm | *Ngành*: Bán hàng/Kinh doanh | *Vùng*: Hồ Chí Minh | *Từ khóa*: `hàng`, `khách`, `khách hàng`, `năng`, `kinh`.
-5.  **Cụm 04: Dịch vụ khách hàng & Call Center (Customer Service & Call Center) - Miền Nam**
-    *   *Tỷ lệ*: 13.57% | *Lương Med*: 8.0M | *Kinh nghiệm Med*: 2.0 năm | *Ngành*: Chăm sóc khách hàng | *Vùng*: Hồ Chí Minh | *Từ khóa*: `hàng`, `khách`, `khách hàng`, `năng`, `kinh`.
-6.  **Cụm 05: Tài chính & Quản trị doanh nghiệp cấp cao (Senior Management & Finance) - Miền Bắc**
-    *   *Tỷ lệ*: 8.45% | *Lương Med*: 10.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Bán hàng/Kinh doanh | *Vùng*: Hà Nội | *Từ khóa*: `hàng`, `năng`, `kinh`, `lý`, `quản`.
-7.  **Cụm 06: Hỗ trợ kinh doanh & Vận hành nội bộ (Business Support & Operations)**
-    *   *Tỷ lệ*: 4.69% | *Lương Med*: 8.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Bán hàng/Kinh doanh | *Vùng*: Bà Rịa - Vũng Tàu | *Từ khóa*: `hàng`, `năng`, `khách`, `kinh`, `khách hàng`.
-8.  **Cụm 07: Kỹ thuật, Dự án & Hành chính Nhân sự (Engineering, Projects & HR-Admin) - Miền Nam**
-    *   *Tỷ lệ*: 12.33% | *Lương Med*: 9.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Xây dựng | *Vùng*: Hồ Chí Minh | *Từ khóa*: `hàng`, `năng`, `khách`, `khách hàng`, `kinh`.
-9.  **Cụm 08: Hỗ trợ khách hàng & Dịch vụ trực tiếp (Customer Assistance & Retail Services) - Miền Bắc**
-    *   *Tỷ lệ*: 10.12% | *Lương Med*: 8.0M | *Kinh nghiệm Med*: 2.0 năm | *Ngành*: Chăm sóc khách hàng | *Vùng*: Hà Nội | *Từ khóa*: `hàng`, `khách`, `khách hàng`, `năng`, `kinh`.
-10. **Cụm 09: Kỹ thuật sản xuất, Vận hành & Đào tạo chuyên môn (Technical, Operations & Training) - Miền Nam**
-    *   *Tỷ lệ*: 6.54% | *Lương Med*: 9.0M | *Kinh nghiệm Med*: 3.0 năm | *Ngành*: Sản xuất/Vận hành | *Vùng*: Bình Dương | *Từ khóa*: `hàng`, `năng`, `khách`, `sản`, `kinh`.
-11. **Cụm 10: Lao động dịch vụ & Vận tải phổ thông (Service Labor & Logistics) - Miền Nam**
-    *   *Tỷ lệ*: 5.84% | *Lương Med*: 8.0M | *Kinh nghiệm Med*: 2.0 năm | *Ngành*: Vận tải/Kho bãi | *Vùng*: Hồ Chí Minh | *Từ khóa*: `hàng`, `khách`, `khách hàng`, `năng`, `định`.
+> [!TIP]
+> **Quyết định thiết kế:** Thay vì chọn $K=11$ (trung hoà), dự án quyết định chốt **$K = 17$**. Trong không gian 169D siêu thưa thớt, chỉ số **Silhouette** là "kim chỉ nam" đáng tin cậy nhất để đo lường việc các điểm dữ liệu nằm khít trong cụm của nó và tách biệt khỏi cụm hàng xóm. Số lượng 17 cụm cũng bám sát thực tiễn phân hóa phức tạp của thị trường lao động.
+
+---
+
+## 3. Khai phá Tri thức (Knowledge Discovery) từ 17 Cụm
+
+Với $K=17$, kết hợp cùng kỹ thuật trích xuất từ khóa TF-IDF nội bộ từng cụm (`Dynamic Semantic Labeling`), mô hình đã gặt hái thành công vang dội khi không chỉ gom được các khối ngành lớn mà còn "bóc tách" (isolate) được các ngành ngách đắt giá:
+
+### Nhóm Chuyên môn hẹp - Thành tựu lớn nhất của mốc 17
+1. **Cụm 09 (Tài chính - Ngân hàng):** Dù chỉ chiếm $0.69\%$ thị trường và yêu cầu kinh nghiệm rất thấp (1 năm), nhưng mức lương Median chạm đỉnh toàn bảng: **15.0 Triệu VND**. (Từ khoá: `thanh toán`).
+2. **Cụm 02 (Công nghệ thông tin - IT):** Nằm tại thị trường Hà Nội, mức lương $10.0M$ dù chỉ 2 năm kinh nghiệm. (Từ khoá: `phát triển`, `kỹ năng`).
+3. **Cụm 15 (Quản lý chất lượng - QA/QC):** Lương $10.0M$. (Từ khóa cực nét: `chất lượng`, `sản phẩm`).
+4. **Cụm 00 (Thiết kế - Sáng tạo):** Lương $10.0M$. (Từ khoá: `thiết kế`, `sản phẩm`).
+
+### Nhóm Ngành công nghiệp Vĩ mô
+- **Cụm 13 (Kỹ sư Xây dựng):** Quy mô $6.50\%$, lương $10.0M$, kinh nghiệm $3.0$ năm. (Từ khóa: `thi công`, `công trình`, `thiết kế`).
+- **Cụm 12 (Cơ khí & Sản xuất):** Quy mô $6.99\%$, lương $10.0M$. (Từ khóa: `điện`, `máy móc`).
+- **Cụm 10 (Kế toán / Kiểm toán):** Trụ cột tài chính doanh nghiệp, chiếm $11.13\%$. (Từ khóa: `kế toán`, `định khoản`).
+
+### Nhóm Dịch vụ & Lao động phổ thông (Lực lượng đông đảo)
+- **Cụm 01 (CSKH / Telesales):** Chiếm tới $22.58\%$, lương $8.0M$.
+- **Cụm 11 (LĐPT / Vận tải / Bảo vệ):** Chiếm $10.42\%$, lương $8.0M$. (Từ khóa: `xe`, `bảo vệ`).
+- **Cụm 06 (Thực tập sinh):** Lương hỗ trợ $4.0M$, yêu cầu kinh nghiệm bằng $0$ hoặc dưới $1$ năm.
+
+---
+
+## 4. Dữ liệu Kết Xuất (Output Artifacts)
+
+Mô hình đã ghi nhận toàn bộ quá trình và tự động dán nhãn lại cho $>520,000$ tin tuyển dụng ban đầu:
+- **`models/clustering_model.pkl`**: Trọng lượng mô hình (Centroids) của 17 cụm, dùng để dự đoán real-time cho tin tuyển dụng mới ở Giai đoạn 4.
+- **`models/cluster_labels_map.pkl`**: Từ điển ánh xạ từ `Cluster ID (0-16)` sang tên gọi ngữ nghĩa của ngành (được sinh tự động).
+- **`results/clean_data_train_clustered.csv`**: Bộ dữ liệu huấn luyện đã được dính kèm 2 cột quý giá: `cluster_id` và `cluster_label`, sẵn sàng cho công tác dựng Dashboard (BI) báo cáo.
