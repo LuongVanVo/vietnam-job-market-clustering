@@ -17,16 +17,16 @@ Trước khi đi sâu vào thuật toán, cần khẳng định pipeline từ Ph
 
 ```mermaid
 graph TD
-    A[Dữ liệu sạch Phase 1] --> B[Biến Phân loại OHE]
-    A --> C[Biến Số / Log MinMaxScaler]
-    A --> D[Biến Văn bản TF-IDF]
-    D --> E[Giảm chiều SVD - 100D]
+    A["Dữ liệu sạch Phase 1"] --> B[Biến Phân loại OHE]
+    A --> C["Biến Số / Log MinMaxScaler"]
+    A --> D["Biến Văn bản TF-IDF"]
+    D --> E["Giảm chiều SVD - 100D"]
     B --> F((Hợp nhất Ma trận - 169D))
     C --> F
     E --> F
-    F --> G[Isolation Forest Loại ngoại lệ tầng 2]
-    G --> H[StandardScaler Cân bằng Phương sai]
-    H --> I[Kết xuất File .npz và Models]
+    F --> G["Isolation Forest Loại ngoại lệ tầng 2"]
+    G --> H["StandardScaler Cân bằng Phương sai"]
+    H --> I["Kết xuất File .npz và Models"]
 ```
 
 ---

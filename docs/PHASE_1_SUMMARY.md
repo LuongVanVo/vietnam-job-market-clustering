@@ -8,14 +8,14 @@ Tài liệu này tổng hợp cực kỳ chi tiết quy trình, cơ sở thuật
 
 ```mermaid
 graph TD
-    A[Dữ liệu Thô: raw_data_train.csv / raw_data_test.csv] --> B[Drop Fields không cần thiết]
-    B --> C[Chuẩn hóa Text & Địa lý: clean_location]
-    C --> D[Trích xuất Lương & Kinh nghiệm từ Regex]
-    D --> E[Lọc ngoại lệ Văn bản: 50 - 5000 từ]
-    E --> F[Tính Yếu vị & Trung vị trên tập Train]
-    F --> G[Điền khuyết dữ liệu Null trên Train & Test]
-    G --> H[Winsorize mức lương ngoại lệ theo phân vị P0.5-P99.5]
-    H --> I[Ghi dữ liệu sạch: clean_data_train.csv / test.csv]
+    A["Dữ liệu Thô: raw_data_train.csv / raw_data_test.csv"] --> B["Drop Fields không cần thiết"]
+    B --> C["Chuẩn hóa Text & Địa lý: clean_location"]
+    C --> D["Trích xuất Lương & Kinh nghiệm từ Regex"]
+    D --> E["Lọc ngoại lệ Văn bản: 50 - 5000 từ"]
+    E --> F["Tính Yếu vị & Trung vị trên tập Train"]
+    F --> G["Điền khuyết dữ liệu Null trên Train & Test"]
+    G --> H["Winsorize mức lương ngoại lệ theo phân vị P0.5-P99.5"]
+    H --> I["Ghi dữ liệu sạch: clean_data_train.csv / test.csv"]
 ```
 
 ---

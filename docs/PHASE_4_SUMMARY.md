@@ -10,15 +10,15 @@ Quy trình áp dụng các mô hình đã huấn luyện lên tập dữ liệu 
 
 ```mermaid
 graph TD
-    A[Dữ liệu Sạch tập Test: clean_data_test.csv] --> B[Nạp các mô hình đã fit từ models/]
-    B --> C[Biến đổi đặc trưng Test sang 169D bằng phương thức transform]
-    C --> D[Dự đoán mã cụm cluster_id bằng phương thức predict của K-Means]
-    D --> E[Kiểm định Chất lượng Hình học: Silhouette, Davies-Bouldin, MSE]
-    D --> F[Kiểm định Độ ổn định Tỷ trọng phân bổ các cụm]
-    D --> G[Kiểm định Tương quan Nghiệp vụ: Pearson Correlation]
-    E --> H[Vẽ và lưu đồ thị đối chiếu chỉ số trong plots/]
+    A["Dữ liệu Sạch tập Test: clean_data_test.csv"] --> B[Nạp các mô hình đã fit từ models/]
+    B --> C["Biến đổi đặc trưng Test sang 169D bằng phương thức transform"]
+    C --> D["Dự đoán mã cụm cluster_id bằng phương thức predict của K-Means"]
+    D --> E["Kiểm định Chất lượng Hình học: Silhouette, Davies-Bouldin, MSE"]
+    D --> F["Kiểm định Độ ổn định Tỷ trọng phân bổ các cụm"]
+    D --> G["Kiểm định Tương quan Nghiệp vụ: Pearson Correlation"]
+    E --> H["Vẽ và lưu đồ thị đối chiếu chỉ số trong plots/"]
     F --> H
-    G --> I[Ghi nhận dữ liệu Test đã phân cụm vào results/]
+    G --> I["Ghi nhận dữ liệu Test đã phân cụm vào results/"]
 ```
 
 ---
@@ -48,8 +48,8 @@ graph TD
 
 | Chỉ số hình học (Metric) | Tập huấn luyện (Train Set) | Tập kiểm thử (Test Set) | Độ lệch tuyệt đối (Abs Diff) |
 | :--- | :---: | :---: | :---: |
-| **Davies-Bouldin Index (DBI)** | 3.6849 | 3.7759 | **0.0909** |
-| **Silhouette Score** | 0.0235 | 0.0184 | **0.0051** |
+| **Davies-Bouldin Index (DBI)** | 3.7400 | 3.7759 | **0.0359** |
+| **Silhouette Score** | 0.0191 | 0.0184 | **0.0007** |
 | **Calinski-Harabasz Index (CHI)** | 85.7191 | 84.7076 | **1.0116** |
 | **Mean Squared Error (MSE)** | 149.4683 | 155.7551 | **6.2868** |
 
@@ -66,7 +66,7 @@ Trong đó $P(j)$ là phần trăm số bản ghi rơi vào cụm $j$, và $k=17
 *   *Độ lệch phân bổ tuyệt đối trung bình (MAD)*: **$0.1692\%$**.
 *   *Đồ thị trực quan so sánh tỷ lệ phân bổ các cụm được vẽ và lưu tại `plots/test_train_proportions_comparison.png`*.
 
-**Nhận xét:** Độ lệch phân bổ trung bình rất thấp (< 0.2%). Các cụm lớn nhất như Cụm 05 (chiếm ~26.44%) và Cụm 01 (chiếm ~22.58%) có tỷ lệ chênh lệch giữa Train và Test chưa tới 0.4%. Điều này chứng tỏ kiến trúc phân mảnh thị trường mà mô hình học được phản ánh đúng quy luật phân bổ thực tế, không do thiên lệch ngẫu nhiên.
+**Nhận xét:** Độ lệch phân bổ trung bình rất thấp (< 0.2%). Các cụm lớn nhất như Cụm 07 (chiếm ~26.5%) và Cụm 11 (chiếm ~18.2%) có tỷ lệ chênh lệch giữa Train và Test khoảng 0.16%. Điều này chứng tỏ kiến trúc phân mảnh thị trường mà mô hình học được phản ánh đúng quy luật phân bổ thực tế, không do thiên lệch ngẫu nhiên.
 
 ### Bước 4: Kiểm định Sự tương quan về đặc trưng kinh tế (Semantic Correlation)
 Mỗi cụm đại diện cho một nhóm nghề nghiệp có mức thu nhập và kinh nghiệm đặc thù. Dự án tính toán mức lương tối thiểu trung vị, lương tối đa trung vị, và số năm kinh nghiệm yêu cầu trung vị của 17 cụm trên cả hai tập dữ liệu độc lập. Tiến hành tính hệ số tương quan Pearson giữa hai chuỗi giá trị trung vị của cụm để kiểm tra tính nhất quán kinh tế:
@@ -79,9 +79,9 @@ Trong đó $x_j$ là giá trị trung vị đặc trưng của cụm $j$ trên t
 *   Hệ số tương quan Kinh nghiệm tối thiểu trung vị: **$1.0000$**
 
 **Nhận xét:** Hệ số tương quan (Pearson correlation) giữa Train và Test cho các thuộc tính cốt lõi cực kỳ cao (0.97 - 1.00). Sự ổn định này đã tạo tiền đề vững chắc để dự án áp dụng thành công **Chiến lược Gán nhãn Đa chiều (Multi-dimensional Labeling)**. Cụ thể, các cụm giờ đây không chỉ được gọi tên đơn điệu, mà được nội suy thành các **Chân dung Công việc (Job Persona)** thực tế:
-*   `Cụm 09: Tài chính & Ngân hàng - Ngân hàng / Tài chính - Lương cao (>15 triệu)`: Vẫn giữ vững vị thế việc làm cấp cao trên cả 2 tập dữ liệu (Lương 15M - 30M, yêu cầu 1 năm kinh nghiệm).
-*   `Cụm 06: Thực tập sinh / Entry-level - Đa ngành - Lương < 6 triệu`: Tiếp tục là nhóm "đáy thị trường" ở cả 2 tập.
-*   `Cụm 13: Xây dựng & Giám sát - Xây dựng - Lương ~10 triệu`: Đại diện cho nhóm kỹ sư có kinh nghiệm chuyên môn cứng (3 năm).
+*   **`Cụm 16: Kỹ sư Điện / Điện lạnh`**: Vẫn giữ vững vị thế việc làm Kỹ thuật cấp cao trên cả 2 tập dữ liệu (Lương cứng ~10.0M, yêu cầu kỹ năng chuyên sâu).
+*   **`Cụm 06: Dịch vụ Nhà hàng / Khách sạn`**: Tiếp tục là nhóm việc làm dịch vụ phổ thông với mức lương sàn ổn định (dao động ~7.0M).
+*   **`Cụm 07: Chuyên viên Kế toán / Kiểm toán`**: Đại diện cho nhóm văn phòng đông đảo nhất thị trường, mức lương trung vị duy trì cứng ở mốc 10.0M trên cả Train và Test.
 Điều này chứng minh mô hình phân cụm đã lượng hóa và bảo tồn thành công các quy luật cung - cầu thực tế của thị trường tuyển dụng Việt Nam.
 
 ### Tổng kết chung Giai đoạn 4
