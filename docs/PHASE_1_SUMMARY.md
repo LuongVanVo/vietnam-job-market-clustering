@@ -60,8 +60,16 @@ graph TD
     $$50 \le \text{word\_count} \le 5000$$
 - **Feature Engineering (Log Transform):** Áp dụng hàm `np.log1p(x)` lên cột lương sạch để tạo thêm 2 biến `salary_min_log1p` và `salary_max_log1p`.
   - **Vì sao dùng:** Phân phối lương thường bị lệch phải (Right-skewed distribution). Log Transform giúp "kéo" phân phối về dạng gần chuẩn (Normal distribution) hơn, hỗ trợ K-Means hội tụ tốt hơn vì khoảng cách Euclid nhạy cảm với độ chênh lệch tuyệt đối.
-- **Kết quả thực thi:**
-  - Kích thước tập Train: Giảm từ `(546,190, 11)` xuống `(545,805, 23)`, chỉ loại bỏ 385 dòng nhiễu siêu nhỏ (0.07%).
+- **Kết quả thực thi & Giải thích chiều dữ liệu (11 $\rightarrow$ 23 columns):**
+  - Kích thước tập Train: Số dòng giảm từ `546,190` xuống `545,805` (chỉ loại bỏ 385 dòng nhiễu siêu nhỏ ~0.07%).
+  - Số lượng cột tăng từ 11 lên 23 do quá trình **Feature Engineering** đã sinh ra thêm 12 cột đặc trưng mới phục vụ mô hình:
+    1. `text_combined`: Cột gộp toàn bộ text (job_title + requirements + job_description + benefits).
+    2. `word_count`: Đếm số lượng từ của cột text_combined.
+    3. `salary_min_m_vnd` / `salary_max_m_vnd` (2 cột): Lương tối thiểu/tối đa đã chuẩn hóa và Capping.
+    4. `exp_min_years` / `exp_max_years` (2 cột): Năm kinh nghiệm tối thiểu/tối đa.
+    5. `salary_min_m_vnd_raw` / `salary_max_m_vnd_raw` (2 cột): Lưu trữ lại mức lương thô nguyên bản trước khi Capping để đối chiếu.
+    6. `is_salary_min_capped` / `is_salary_max_capped` (2 cột): Cờ (Boolean flag) đánh dấu dòng dữ liệu nào đã bị ép biên (Winsorized).
+    7. `salary_min_log1p` / `salary_max_log1p` (2 cột): Log transform của cột lương.
   - Phân bố `location` (Minh chứng gom cụm thuật toán chuẩn xác tuyệt đối): Hồ Chí Minh (289,891), Hà Nội (136,320), Bình Dương (22,986), Đồng Nai (10,212), Đà Nẵng (8,948), Khác (7,368).
 
 ### Cell 16, 17, 18 & 19: Lưu trữ Dữ liệu Sạch & Trực quan hóa
