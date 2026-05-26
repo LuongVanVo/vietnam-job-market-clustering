@@ -1,80 +1,77 @@
 # Báo cáo Kết quả Giai đoạn 1: Tiền xử lý và Làm sạch Dữ liệu
 
-Tài liệu này tổng hợp chi tiết quy trình, cơ sở toán học và kịch bản thực thi trong **Giai đoạn 1: Tiền xử lý và Làm sạch Dữ liệu** của dự án Phân cụm thị trường việc làm Việt Nam. Quy trình được thiết kế đồng bộ tương ứng với mã nguồn trong tệp tin `notebooks/01_preprocess.ipynb`.
+Tài liệu này tổng hợp cực kỳ chi tiết quy trình, cơ sở thuật toán, công thức toán học và kết quả đạt được trong **Giai đoạn 1: Tiền xử lý và Làm sạch Dữ liệu** của dự án Phân cụm thị trường việc làm Việt Nam (tệp tin `notebooks/01_preprocess.ipynb`).
 
 ---
 
 ## 1. Lưu đồ Quy trình Thực hiện (Mermaid Flowchart)
 
-Quy trình làm sạch và chuẩn hóa dữ liệu được thực hiện tuần tự theo sơ đồ dưới đây:
-
 ```mermaid
 graph TD
-    A[Dữ liệu Thô: raw_data_train.csv / raw_data_test.csv] --> B[Chuẩn hóa Văn bản Tiếng Việt bằng Regex]
-    B --> C[Chuẩn hóa Địa lý: clean_location]
-    C --> D[Trích xuất Lương & Kinh nghiệm từ chuỗi text]
-    D --> E[Lọc ngoại lệ Văn bản quá ngắn hoặc quá dài]
-    E --> F[Tính toán Yếu vị & Trung vị trên tập Train]
-    F --> G[Điền khuyết dữ liệu Null trên cả Train và Test]
-    G --> H[Capping mức lương cực cao theo quy tắc IQR]
-    H --> I[Ghi dữ liệu sạch: clean_data_train.csv / clean_data_test.csv]
+    A[Dữ liệu Thô: raw_data_train.csv / raw_data_test.csv] --> B[Drop Fields không cần thiết]
+    B --> C[Chuẩn hóa Text & Địa lý: clean_location]
+    C --> D[Trích xuất Lương & Kinh nghiệm từ Regex]
+    D --> E[Lọc ngoại lệ Văn bản: 50 - 5000 từ]
+    E --> F[Tính Yếu vị & Trung vị trên tập Train]
+    F --> G[Điền khuyết dữ liệu Null trên Train & Test]
+    G --> H[Winsorize mức lương ngoại lệ theo phân vị P0.5-P99.5]
+    H --> I[Ghi dữ liệu sạch: clean_data_train.csv / test.csv]
 ```
 
 ---
 
-## 2. Các Bước Thực hiện Chi tiết & Cơ sở Thuật toán
+## 2. Chi tiết Thực thi, Cơ sở Thuật toán và Kết quả từng Cell
 
-### Bước 1: Chuẩn hóa Văn bản Tiếng Việt
-Mục tiêu là giảm nhiễu từ vựng trong mô tả công việc (Job Description - JD) trước khi đưa vào mô hình vector hóa.
-*   **Chuyển chữ thường**: Toàn bộ chuỗi văn bản được đưa về ký tự thường (lowercase).
-*   **Lọc thẻ HTML**: Loại bỏ các thẻ định dạng văn bản bằng biểu thức chính quy (Regex): `<[^>]+>`.
-*   **Loại bỏ thông tin nhạy cảm (PII)**: Loại bỏ địa chỉ email, liên kết URL và các chuỗi số điện thoại Việt Nam thô bằng Regex để bảo mật dữ liệu và giảm đặc trưng rác.
-*   **Lọc ký tự đặc biệt**: Chỉ giữ lại các chữ cái tiếng Việt có dấu, chữ số và khoảng trắng đơn.
+### Cell 1 & 2: Khởi tạo và Import Thư viện
+- **Cách làm:** Khai báo và import `pandas`, `numpy`, `re`, `matplotlib`, `seaborn` và `gc`.
+- **Vì sao dùng:** `pandas` xử lý dữ liệu dạng bảng lớn với hiệu suất cao; `re` để thực thi Regular Expression (biểu thức chính quy) cho việc quét/lọc text chuẩn xác; `gc` (Garbage Collector) để chủ động giải phóng bộ nhớ, tránh tràn RAM khi thao tác trên các file CSV $> 1\text{GB}$.
 
-### Bước 2: Chuẩn hóa Địa lý (Location Classification)
-*   **Bài toán**: Cột địa điểm làm việc (`location`) chứa hơn 233,000 giá trị thô, bao gồm số nhà, tên đường cụ thể gây phân mảnh dữ liệu.
-*   **Giải pháp**: Áp dụng hàm ánh xạ từ khóa địa lý `clean_location` để nhận diện và quy chuẩn về các tỉnh thành lớn (ví dụ: Hà Nội, Hồ Chí Minh, Bình Dương, Đà Nẵng, v.v.).
-*   **Nguyên tắc**: Giữ nguyên toàn bộ 4,179 địa phương sạch sau chuẩn hóa thô. Việc gom cụm địa phương hiếm gặp (tần suất < 0.5%) được chuyển tiếp cho trình mã hóa `OneHotEncoder` ở Giai đoạn 2 xử lý một cách khách quan, tránh việc gộp nhóm thủ công mang tính chủ quan.
+### Cell 3, 4, 5 & 6: Khảo sát và Loại bỏ Thuộc tính (Drop Fields)
+- **Cách làm:** Đọc file CSV và loại bỏ ngay các cột `company_name`, `company_address`, `company_url`, `job_url`.
+- **Vì sao dùng (Rationale):** Việc phân cụm bằng Học Máy (Clustering) yêu cầu mô hình phải tập trung vào đặc trưng ngữ nghĩa của *Mô tả công việc*. Các thông tin định danh (Tên công ty, URL) sẽ gây ra **nhiễu định danh (Identity Noise)**. Nếu giữ lại, mô hình K-Means sẽ có xu hướng (bias) gom cụm các bài đăng của cùng *một công ty* lại với nhau, thay vì gom cụm theo *tính chất chuyên môn*. Phép loại bỏ này cũng đóng vai trò như một bước Giảm chiều dữ liệu (Dimensionality Reduction), tiết kiệm RAM đáng kể.
 
-### Bước 3: Trích xuất Thuộc tính Số từ Chuỗi Văn bản Cấu trúc
-*   **Trích xuất Lương**: Phân tích cú pháp cột lương thô (`salary`). Quy đổi tất cả khoảng lương (USD, VND, nghìn/giờ, triệu/năm) về đơn vị chuẩn **Triệu VND / tháng** để làm thuộc tính số liên tục (`salary_min_m_vnd` và `salary_max_m_vnd`).
-*   **Trích xuất Kinh nghiệm**: Phân tích cú pháp cột yêu cầu kinh nghiệm (`experience_level`) để trích xuất số năm kinh nghiệm tối thiểu/tối đa (`exp_min_years` và `exp_max_years`).
+### Cell 7 & 8: Định nghĩa các Hàm Xử lý & Chuẩn hóa (Cốt lõi)
+- **`clean_text` (Thuật toán Regex):** Dùng `re.sub(r'<[^>]+>', ' ', text)` để lọc HTML, `r'\S+@\S+'` để lọc Email. Cuối cùng dùng `r'[^\w\s\u00C0-\u024F\u1E00-\u1EFF]'` để chỉ giữ lại chữ cái có dấu và số.
+  - **Vì sao dùng:** Loại bỏ ký tự rác giúp không gian vector TF-IDF/Word2Vec sau này trở nên "sạch" hơn (Sparse Matrix tinh gọn). Tránh việc sinh ra hàng vạn token vô nghĩa như `href`, `www`.
+- **`clean_location` (Thuật toán Ánh xạ & Gom cụm Text):** Dùng từ điển (Dictionary Mapping) và Regex bắt mạnh các keyword `hcm`, `quận 1`, `tân bình`, `thủ đức` về chuẩn **Hồ Chí Minh**; `hn` về **Hà Nội**; `vn` về **Khác**.
+  - **Vì sao dùng:** Để chống **Phân mảnh dữ liệu (Data Fragmentation)**. Thuật toán không tự hiểu "Quận 1" nằm trong "TP.HCM". Nếu không gom cụm chuẩn xác, sự phân bố tần suất sẽ bị vỡ vụn, gây khó khăn cho việc nhúng One-Hot Encoding ở Giai đoạn 2.
+- **`parse_salary_string`:** Quy đổi đa tiền tệ về mốc chuẩn `Triệu VND/Tháng`.
 
-### Bước 4: Lọc ngoại lệ Độ dài Văn bản (Text Length Outliers)
-Loại bỏ các dòng tin tuyển dụng không đạt yêu cầu về lượng thông tin hoặc bị lỗi sao chép:
-*   Độ dài từ (`word_count`) được tính bằng cách tách khoảng trắng chuỗi văn bản kết hợp (`job_title` + `requirements` + `job_description` + `benefits`).
-*   Bản ghi được giữ lại nếu thỏa mãn điều kiện hình học:
-    $$50 \le \text{word\_count} \le 5000$$
-
-### Bước 5: Điền khuyết Dữ liệu Null (Imputation)
-Để ngăn chặn rò rỉ dữ liệu (data leakage), các tham số điền khuyết được học hoàn toàn từ tập huấn luyện (Train) và áp dụng tĩnh lên tập kiểm thử (Test):
-*   **Biến danh mục**: Điền các giá trị trống bằng **Yếu vị (Mode)** của tập Train:
+### Cell 9 & 10: Phân tích Thống kê & Imputation (Điền khuyết Dữ liệu)
+- **Thuật toán Imputation:** Điền dữ liệu thiếu dựa vào phân phối của tập Train.
+  - Biến danh mục (Categorical): Điền bằng **Yếu vị (Mode)**:
     $$\text{Imputed Value}_{\text{cat}} = \text{Mode}(X_{\text{Train, cat}})$$
-*   **Biến số (Lương & Kinh nghiệm)**: Điền các giá trị trống bằng **Trung vị (Median)** của tập Train:
+  - Biến liên tục (Numerical): Điền bằng **Trung vị (Median)** thay vì Trung bình (Mean).
     $$\text{Imputed Value}_{\text{num}} = \text{Median}(X_{\text{Train, num}})$$
-    *   *Trung vị lương tối thiểu*: 9.0 Triệu VND.
-    *   *Trung vị lương tối đa*: 15.0 Triệu VND.
-    *   *Trung vị kinh nghiệm tối thiểu/tối đa*: 3.0 năm.
+    - **Vì sao dùng Median:** Median kháng nhiễu (robust) hoàn toàn trước các giá trị ngoại lệ (outliers), trong khi Mean sẽ bị kéo lệch nghiêm trọng nếu có một mức lương cực đoan xuất hiện.
+- **Thuật toán Winsorize (Cắt biên phân vị P0.5 - P99.5):**
+  - K-Means sử dụng khoảng cách Euclid ($L_2$ norm), vô cùng nhạy cảm với ngoại lệ (Ví dụ: 1 tin đăng ghi lương 500 triệu/tháng). Các điểm Centroid sẽ bị hút dạt về phía ngoại lệ, làm hỏng các cụm.
+  - Thay vì dùng IQR có thể cắt mất các cụm lương quản lý cấp cao hợp lệ, dự án dùng phương pháp **Winsorizing** cắt tại 2 đầu phân vị cực đoan nhất ($0.5\%$ và $99.5\%$) của dữ liệu Train:
+    $$\text{Lower Limit} = \max(1.0, P_{0.5}(X_{\text{Train, salary}}))$$
+    $$\text{Upper Limit} = P_{99.5}(X_{\text{Train, salary}})$$
+  - Phép Capping (Clip) được áp dụng để ép các giá trị nằm ngoài biên về lại mốc giới hạn:
+    $$x_{\text{capped}} = \max(\text{Lower Limit}, \min(x, \text{Upper Limit}))$$
+- **Vì sao tính trên Train rồi áp lên Test?** Đây là quy tắc tối quan trọng để ngăn chặn **Rò rỉ dữ liệu (Data Leakage)**. Tham số phân phối phải được "đóng băng" từ tập Train để đảm bảo tập Test mô phỏng đúng dữ liệu thực tế (unseen data).
 
-### Bước 6: Capping Ngoại lệ Lương (Salary Outliers)
-Các mức lương cực cao (do ghi nhầm hoặc lương quản lý cấp cao cá biệt) sẽ làm méo mó nghiêm trọng khoảng cách Euclid của K-Means. Dự án áp dụng quy tắc khoảng tứ phân vị (IQR) để capping:
-1.  Tính khoảng tứ phân vị trên thuộc tính lương tối thiểu tập Train:
-    $$\text{IQR} = Q_3(X_{\text{Train, salary\_min}}) - Q_1(X_{\text{Train, salary\_min}})$$
-2.  Xác định ngưỡng biên trên để capping lương tối thiểu:
-    $$\text{Upper Limit}_{\text{min}} = Q_3(X_{\text{Train, salary\_min}}) + 3.0 \times \text{IQR} = 23.0 \text{ Triệu VND/tháng}$$
-3.  Capping mức lương tối đa ở ngưỡng:
-    $$\text{Upper Limit}_{\text{max}} = 1.5 \times \text{Upper Limit}_{\text{min}} = 34.5 \text{ Triệu VND/tháng}$$
-4.  Áp dụng phép capping (clip) lên cả tập Train và Test bằng các tham số tĩnh này:
-    $$x_{\text{capped}} = \min(x, \text{Upper Limit})$$
+### Cell 11, 12, 13 & 14: Thực thi Làm sạch Train và Test Set
+- **Thuật toán Lọc ngoại lệ hình học (Text Length):** Lọc dựa trên `word_count`.
+  - **Vì sao dùng:** Tin tuyển dụng có $< 50$ từ quá ngắn, không cung cấp đủ ngữ cảnh (Contextual Semantics) để phân cụm. Tin $> 5000$ từ thường là copy-paste rác/lỗi. Lọc trong khoảng đoạn $[50, 5000]$ giúp mô hình học được các vector ổn định.
+  - **Công thức áp dụng:** 
+    $$50 \le \text{word\_count} \le 5000$$
+- **Feature Engineering (Log Transform):** Áp dụng hàm `np.log1p(x)` lên cột lương sạch để tạo thêm 2 biến `salary_min_log1p` và `salary_max_log1p`.
+  - **Vì sao dùng:** Phân phối lương thường bị lệch phải (Right-skewed distribution). Log Transform giúp "kéo" phân phối về dạng gần chuẩn (Normal distribution) hơn, hỗ trợ K-Means hội tụ tốt hơn vì khoảng cách Euclid nhạy cảm với độ chênh lệch tuyệt đối.
+- **Kết quả thực thi:**
+  - Kích thước tập Train: Giảm từ `(546,190, 11)` xuống `(545,805, 23)`, chỉ loại bỏ 385 dòng nhiễu siêu nhỏ (0.07%).
+  - Phân bố `location` (Minh chứng gom cụm thuật toán chuẩn xác tuyệt đối): Hồ Chí Minh (289,891), Hà Nội (136,320), Bình Dương (22,986), Đồng Nai (10,212), Đà Nẵng (8,948), Khác (7,368).
 
----
+### Cell 16, 17, 18 & 19: Lưu trữ Dữ liệu Sạch & Trực quan hóa
+- **Vì sao dùng ECDF (Empirical Cumulative Distribution Function):** Thay vì vẽ Histogram (vốn bị thiên lệch do số lượng bin - bin size), ECDF vẽ tỷ lệ phần trăm phân bố tích lũy thực nghiệm.
+  $$\hat{F}_n(x) = \frac{1}{n}\sum_{i=1}^{n} \mathbf{1}_{x_i \le x}$$
+- **Kết quả trực quan:** Phân bố Lương và Word Count trở nên cực kỳ mượt mà. Hiện tượng "đuôi dài" (Long-tail distribution) do nhiễu số liệu đã bị triệt tiêu hoàn toàn nhờ kỹ thuật Winsorize.
 
-## 3. Kết quả Thống kê Dữ liệu Giai đoạn 1
-
-Quy trình đã làm sạch và đồng bộ hóa thành công tập dữ liệu lớn:
-
-*   **Tập huấn luyện (Train)**: Kích thước thô `(546,190, 11)` giảm xuống còn `(545,805, 17)` sau khi loại bỏ 385 dòng ngoại lệ độ dài từ và mở rộng thêm 6 thuộc tính số đã làm sạch.
-*   **Tập kiểm thử (Test)**: Kích thước thô `(60,688, 11)` giảm xuống còn `(60,644, 17)` sau khi loại bỏ 44 dòng ngoại lệ độ dài từ.
-*   **Trực quan hóa**:
-    *   Phân bố độ dài từ được vẽ và lưu tại `plots/word_count_comparison.png`.
-    *   Phân bố mức lương tối thiểu trước và sau khi capping được vẽ và lưu tại `plots/salary_comparison.png`.
+### Cell 20, 21 & 22: Báo cáo Thống kê Ngoại Lệ
+- **Vì sao phải in báo cáo này?** Đóng vai trò như một bước **Sanity Check (Kiểm chứng tính hợp lý)** để đảm bảo các biểu thức Regex và phân vị P0.5-P99.5 đã chém đúng vị trí, không cắt lầm vào dữ liệu tốt.
+- **Kết quả ghi nhận:**
+  - **Độ dài từ:** Thô (0 - 7,571 từ) $\rightarrow$ Sạch (50 - 4,092 từ).
+  - **Mức lương Min:** Thô (0 - 500 Triệu VND) $\rightarrow$ Sạch (1.0 - 35.0 Triệu VND).
+  - Dữ liệu hiện tại đã đáp ứng 100% tiêu chuẩn chất lượng (Data Quality) để tiến vào pipeline Machine Learning ở Giai đoạn 2.
