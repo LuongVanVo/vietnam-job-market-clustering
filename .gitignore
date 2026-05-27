@@ -18,3 +18,5 @@ __pycache__/
 # Generated artifacts (large)
 results/
 models/umap_viz.pkl
+
+/tmp
